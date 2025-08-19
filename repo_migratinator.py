@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-
 import subprocess
 import sys
 import os
@@ -15,7 +14,9 @@ import argparse
 # python your_script_name.py \
 #   --origin-host https://github.com/example-user/ \
 #   --dest-host https://new-githost.com/example-user/ \
-#   --repos old-repo-1 another-repo project-alpha
+#   --repos old-repo-1 another-repo \
+#   --clean \
+#   --force
 #
 # --- As an Imported Module ---
 #
@@ -25,7 +26,9 @@ import argparse
 #     origin_host="https://github.com/example-user/",
 #     dest_host="https://new-githost.com/example-user/",
 #     repos=["old-repo-1", "another-repo"],
-#     no_push=False
+#     no_push=False,
+#     clean=True,
+#     force=True
 # )
 
 
@@ -68,7 +71,7 @@ def run_command(command, cwd=None):
         sys.exit(1)
 
 
-def migrate_repos(origin_host, dest_host, repos, no_push=False):
+def migrate_repos(origin_host, dest_host, repos, no_push=False, clean=False, force=False):
     """
     Orchestrates the repository migration for a list of repos.
     This is the core logic function.
@@ -78,6 +81,8 @@ def migrate_repos(origin_host, dest_host, repos, no_push=False):
         dest_host (str): The base URL for the destination host.
         repos (list): A list of repository names to migrate.
         no_push (bool): If True, skips the push step. Defaults to False.
+        clean (bool): If True, removes the temporary local repo. Defaults to False.
+        force (bool): If True, overwrites existing local directories. Defaults to False.
     """
     for repo in repos:
         print(f"\n=================================================")
@@ -89,16 +94,20 @@ def migrate_repos(origin_host, dest_host, repos, no_push=False):
         dest_url = f"{dest_host.rstrip('/')}/{repo}.git"
         
         # The local directory for the bare clone will be 'repo-name.git'.
-        repo_dir = f"{repo}.git"
+        repo_dir = f"{repo}"
 
-        # Clean up any previous runs to ensure a fresh start.
+        # Check if the directory exists before proceeding.
         if os.path.exists(repo_dir):
-            print(f"Found existing directory '{repo_dir}'. Removing it for a clean clone.")
-            shutil.rmtree(repo_dir)
+            if force:
+                print(f"Warning: Found existing directory '{repo_dir}'. --force is set, so it will be removed.")
+                shutil.rmtree(repo_dir)
+            else:
+                print(f"Error: Directory '{repo_dir}' already exists. Use --force to overwrite. Skipping this repo.", file=sys.stderr)
+                continue # Skip to the next repository in the list.
 
         # Step 1: Create a bare mirror clone of the original repository.
         print("\n--- Step 1: Creating mirror clone ---")
-        run_command(["git", "clone", "--mirror", origin_url])
+        run_command(["git", "clone", "--mirror", origin_url, repo])
         print("---------------------------------------")
 
         # Step 2: Set the new remote URL for the 'origin' remote.
@@ -114,11 +123,15 @@ def migrate_repos(origin_host, dest_host, repos, no_push=False):
         else:
             print("\n--- Step 3: Skipping push as requested ---")
 
-        # Step 4: Clean up the temporary local repository.
-        print("\n--- Step 4: Cleaning up ---")
-        shutil.rmtree(repo_dir)
-        print(f"Removed temporary directory: {repo_dir}")
-        print("---------------------------")
+        # Step 4: Clean up the temporary local repository, if requested.
+        if clean:
+            print("\n--- Step 4: Cleaning up ---")
+            shutil.rmtree(repo_dir)
+            print(f"Removed temporary directory: {repo_dir}")
+            print("---------------------------")
+        else:
+            print(f"\n--- Step 4: Skipping cleanup. Mirrored repo is at: {os.path.abspath(repo_dir)} ---")
+
 
         print(f"\n✅ Migration complete for: {repo}")
         if not no_push:
@@ -159,6 +172,16 @@ def main():
         action="store_true", 
         help="If set, the script will clone and set the new remote,\nbut will NOT push to the destination."
     )
+    parser.add_argument(
+        "--clean",
+        action="store_true",
+        help="If set, the temporary local repository directory will be\nremoved after the script finishes. By default, it is kept."
+    )
+    parser.add_argument(
+        "--force",
+        action="store_true",
+        help="If set, any existing local directory with the same name as the\nrepository will be overwritten. By default, the script will stop."
+    )
     
     args = parser.parse_args()
 
@@ -167,7 +190,9 @@ def main():
         origin_host=args.origin_host,
         dest_host=args.dest_host,
         repos=args.repos,
-        no_push=args.no_push
+        no_push=args.no_push,
+        clean=args.clean,
+        force=args.force
     )
 
 
@@ -175,4 +200,3 @@ if __name__ == "__main__":
     # This block ensures that main() is only called when the script is executed directly.
     # If this script is imported by another module, this block will not run.
     main()
-# End of repo_migratinator.py
