@@ -14,6 +14,10 @@ The script uses the `git clone --mirror` and `git push --mirror` workflow, which
   * A `--no-push` flag allows you to run the script without pushing to the destination, verifying the clone and setup process.
   * The script automatically handles the creation and deletion of temporary local directories by specifying the `--clean` flag.
 
+## Limitations
+
+  * Does not currently support LFS, but planning on adding it!
+
 -----
 
 ## Usage
