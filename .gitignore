@@ -1,0 +1,9 @@
+# Ignore everything
+*
+
+# Except my_folder and its contents
+#!my_folder/
+#!my_folder/**
+!.gitignore
+!.git
+!repo_migratinator.py

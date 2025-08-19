@@ -25,7 +25,7 @@ The script is most commonly used directly from the terminal.
 #### Syntax
 
 ```
-python git_mirror_python.py --origin-host <SOURCE_URL> --dest-host <DEST_URL> --repos <REPO_1> <REPO_2> ... [--no-push]
+python repo_migratinator.py --origin-host <SOURCE_URL> --dest-host <DEST_URL> --repos <REPO_1> <REPO_2> ... [--no-push]
 ```
 
 #### Arguments
@@ -38,7 +38,7 @@ python git_mirror_python.py --origin-host <SOURCE_URL> --dest-host <DEST_URL> --
 #### Example
 
 ```
-python git_mirror_python.py \
+python repo_migratinator.py \
   --origin-host https://github.com/my-old-company/ \
   --dest-host https://dev.azure.com/my-new-company/ \
   --repos project-alpha project-beta project-gamma
